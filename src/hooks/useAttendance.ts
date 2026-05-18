@@ -37,11 +37,11 @@ export const useAttendance = () => {
     ));
   };
 
-  const markAttendance = (batchId: string, studentId: string, status: 'present' | 'absent') => {
+  const markAttendance = (batchId: string, studentId: string, status: 'present' | 'absent' | 'pending', customDate?: string) => {
     setBatches(batches.map(b => {
       if (b.id !== batchId) return b;
 
-      const now = new Date();
+      const now = customDate ? new Date(customDate) : new Date();
       const today = now.toDateString();
       const existingRecordIndex = b.records.findIndex(r => 
         r.studentId === studentId && new Date(r.date).toDateString() === today
@@ -53,39 +53,53 @@ export const useAttendance = () => {
         let presentChange = 0;
         let dayChange = 0;
 
-        if (existingRecordIndex !== -1) {
-          // Update existing record logic
-          const oldStatus = b.records[existingRecordIndex].status;
-          if (oldStatus !== status) {
-            presentChange = status === 'present' ? 1 : -1;
+        if (status === 'pending') {
+          if (existingRecordIndex !== -1) {
+            const oldStatus = b.records[existingRecordIndex].status;
+            presentChange = oldStatus === 'present' ? -1 : 0;
+            dayChange = -1;
           }
-          dayChange = 0; // Already counted this day
         } else {
-          // New record logic
-          presentChange = status === 'present' ? 1 : 0;
-          dayChange = 1;
+          if (existingRecordIndex !== -1) {
+            // Update existing record logic
+            const oldStatus = b.records[existingRecordIndex].status;
+            if (oldStatus !== status) {
+              presentChange = status === 'present' ? 1 : -1;
+            }
+            dayChange = 0; // Already counted this day
+          } else {
+            // New record logic
+            presentChange = status === 'present' ? 1 : 0;
+            dayChange = 1;
+          }
         }
 
         return {
           ...s,
           presentCount: Math.max(0, s.presentCount + presentChange),
-          totalDays: s.totalDays + dayChange
+          totalDays: Math.max(0, s.totalDays + dayChange)
         };
       });
 
-      const checkIn = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-      const newRecord = {
-        date: now.toISOString(),
-        status,
-        studentId,
-        checkIn
-      };
-
-      const updatedRecords = [...b.records];
-      if (existingRecordIndex !== -1) {
-        updatedRecords[existingRecordIndex] = newRecord;
+      let updatedRecords = [...b.records];
+      if (status === 'pending') {
+        if (existingRecordIndex !== -1) {
+          updatedRecords = updatedRecords.filter((_, idx) => idx !== existingRecordIndex);
+        }
       } else {
-        updatedRecords.push(newRecord);
+        const checkIn = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        const newRecord = {
+          date: now.toISOString(),
+          status,
+          studentId,
+          checkIn
+        };
+
+        if (existingRecordIndex !== -1) {
+          updatedRecords[existingRecordIndex] = newRecord;
+        } else {
+          updatedRecords.push(newRecord);
+        }
       }
 
       return {
@@ -105,8 +119,8 @@ export const useAttendance = () => {
         if (s.id !== lastRecord.studentId) return s;
         return {
           ...s,
-          presentCount: s.presentCount - (lastRecord.status === 'present' ? 1 : 0),
-          totalDays: s.totalDays - 1
+          presentCount: Math.max(0, s.presentCount - (lastRecord.status === 'present' ? 1 : 0)),
+          totalDays: Math.max(0, s.totalDays - 1)
         };
       });
 

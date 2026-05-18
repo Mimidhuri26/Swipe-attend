@@ -84,7 +84,7 @@ function App() {
 
 
   return (
-    <div className="min-h-screen text-white selection:bg-primary/30 pb-20">
+    <div className="min-h-screen text-slate-800 selection:bg-primary/30 pb-20">
       {/* Background decoration */}
       <div className="fixed inset-0 pointer-events-none -z-10 bg-[#f8fafc]">
         <div 
@@ -160,6 +160,7 @@ function App() {
             <StudentReport 
               batch={selectedBatch} 
               onBack={() => setView('dashboard')} 
+              onUpdateAttendance={(studentId, status, dateStr) => markAttendance(selectedBatch.id, studentId, status, dateStr)}
             />
             
             <input 
@@ -191,13 +192,44 @@ function App() {
                     {currentStudentIndex + 1} of {selectedBatch.students.length}
                   </div>
                 </div>
-                <AttendanceCard 
-                  student={currentStudent}
-                  onSwipe={(dir) => handleMarkAttendance(currentStudent.id, dir === 'right' ? 'present' : 'absent')}
-                  onUndo={handleUndo}
-                  onUpdatePhoto={(photo) => updateStudentPhoto(selectedBatchId!, currentStudent.id, photo)}
-                  canUndo={selectedBatch.records.length > 0}
-                />
+                <div className="relative w-full max-w-[340px] aspect-[4/5] mb-28">
+                  {/* Layered Under Card 2 (if 3 or more remaining) */}
+                  {remainingStudentIds.length > 2 && (
+                    <div className="absolute inset-0 bg-white/40 rounded-[40px] shadow-md border border-slate-200/40 scale-[0.92] translate-y-8 -rotate-2 z-0 pointer-events-none" />
+                  )}
+
+                  {/* Layered Under Card 1 (if 2 or more remaining) */}
+                  {remainingStudentIds.length > 1 && (
+                    <div className="absolute inset-0 bg-white/80 rounded-[40px] shadow-lg border border-slate-200/60 scale-[0.96] translate-y-4 rotate-1 z-10 pointer-events-none flex flex-col items-center justify-center p-8 opacity-90">
+                      <div className="w-40 h-40 rounded-full bg-slate-50 border-4 border-white shadow-md flex items-center justify-center mb-8 overflow-hidden">
+                        {selectedBatch.students.find(s => s.id === remainingStudentIds[1])?.photo ? (
+                          <img src={selectedBatch.students.find(s => s.id === remainingStudentIds[1])?.photo} className="w-full h-full object-cover grayscale opacity-30" />
+                        ) : (
+                          <div className="text-6xl font-bold text-slate-200 font-display">
+                            {selectedBatch.students.find(s => s.id === remainingStudentIds[1])?.name.charAt(0) || '?'}
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="text-3xl font-bold text-slate-300 font-display truncate w-full text-center px-4">
+                        {selectedBatch.students.find(s => s.id === remainingStudentIds[1])?.name || 'Next Student'}
+                      </h4>
+                      <p className="text-slate-300 font-bold tracking-[0.2em] uppercase text-[9px] mt-1">
+                        ID: {selectedBatch.students.find(s => s.id === remainingStudentIds[1])?.rollNo || ''}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Main Swipable Card */}
+                  <div className="absolute inset-0 z-20">
+                    <AttendanceCard 
+                      student={currentStudent}
+                      onSwipe={(dir) => handleMarkAttendance(currentStudent.id, dir === 'right' ? 'present' : 'absent')}
+                      onUndo={handleUndo}
+                      onUpdatePhoto={(photo) => updateStudentPhoto(selectedBatchId!, currentStudent.id, photo)}
+                      canUndo={selectedBatch.records.length > 0}
+                    />
+                  </div>
+                </div>
 
               </div>
             ) : (

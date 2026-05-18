@@ -1,14 +1,15 @@
 import React, { useMemo, useState, useRef } from 'react';
-import { Menu, Search, X, MoreVertical, Calendar, ChevronDown, BarChart3, ListChecks } from 'lucide-react';
+import { Search, X, MoreVertical, Calendar, ChevronDown, BarChart3, ListChecks, ChevronLeft } from 'lucide-react';
 import type { Batch, Student, AttendanceRecord } from '../lib/types';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface StudentReportProps {
   batch: Batch;
   onBack: () => void;
+  onUpdateAttendance?: (studentId: string, status: 'present' | 'absent' | 'pending', dateStr: string) => void;
 }
 
-const StudentReport: React.FC<StudentReportProps> = ({ batch }) => {
+const StudentReport: React.FC<StudentReportProps> = ({ batch, onBack, onUpdateAttendance }) => {
   const [reportMode, setReportMode] = useState<'daily' | 'overall'>('daily');
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,8 +63,14 @@ const StudentReport: React.FC<StudentReportProps> = ({ batch }) => {
       <header className="bg-[#1565c0] text-white px-4 h-16 flex items-center justify-between shadow-md z-20 transition-all duration-300">
         {!isSearchOpen ? (
           <>
-            <div className="flex items-center gap-6">
-              <Menu className="w-6 h-6 outline-none" />
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={onBack}
+                className="p-2 hover:bg-white/10 rounded-full transition-all active:scale-95 flex items-center justify-center -ml-2"
+                aria-label="Go back"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
               <h1 className="text-xl font-medium tracking-wide">Student Attendance</h1>
             </div>
             <div className="flex items-center gap-4">
@@ -209,18 +216,27 @@ const StudentReport: React.FC<StudentReportProps> = ({ batch }) => {
                           </div>
 
                           {/* Status / Percentage Indicator */}
-                          <div className={`w-20 flex items-center justify-center text-white font-bold text-xl transition-colors duration-300
-                            ${reportMode === 'daily' 
-                              ? (isPresent ? 'bg-[#00897b]' : isAbsent ? 'bg-[#d32f2f]' : 'bg-slate-100/50 text-slate-300 border-l border-slate-100')
-                              : 'bg-slate-50 items-start pt-6 border-l border-slate-100'
-                            }
-                          `}>
+                          <button
+                            disabled={reportMode !== 'daily' || !onUpdateAttendance}
+                            onClick={() => {
+                              if (reportMode === 'daily' && onUpdateAttendance) {
+                                const nextStatus = isPresent ? 'absent' : isAbsent ? 'pending' : 'present';
+                                onUpdateAttendance(student.id, nextStatus, selectedDate);
+                              }
+                            }}
+                            className={`w-20 flex items-center justify-center text-white font-bold text-xl transition-all duration-300 select-none outline-none border-none
+                              ${reportMode === 'daily' 
+                                ? (isPresent ? 'bg-[#00897b] hover:brightness-110 active:scale-95 cursor-pointer' : isAbsent ? 'bg-[#d32f2f] hover:brightness-110 active:scale-95 cursor-pointer' : 'bg-slate-100/50 text-slate-300 hover:bg-slate-100 active:scale-95 cursor-pointer border-l border-slate-100')
+                                : 'bg-slate-50 items-start pt-6 border-l border-slate-100 cursor-default'
+                              }
+                            `}
+                          >
                             {reportMode === 'daily' ? (
                               isPresent ? 'P' : isAbsent ? 'A' : '-'
                             ) : (
                               <span className="text-slate-800 text-lg">{percentage}%</span>
                             )}
-                          </div>
+                          </button>
                         </div>
                       );
                     })}
