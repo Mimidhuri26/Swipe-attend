@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, useMotionValue, useTransform, useSpring, type PanInfo } from 'framer-motion';
+import { motion, useMotionValue, useTransform, useSpring, animate, type PanInfo } from 'framer-motion';
 import { Check, X, Undo2, Camera } from 'lucide-react';
 import { Camera as CapCamera, CameraResultType } from '@capacitor/camera';
 import type { Student } from '../lib/types';
@@ -48,13 +48,20 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ student, onSwipe, onUnd
   const iconScaleLeft = useTransform(springX, [-150, -50], [1.2, 0.5]);
   const iconScaleRight = useTransform(springX, [50, 150], [0.5, 1.2]);
 
+  const handleActionSwipe = (direction: 'left' | 'right') => {
+    const targetX = direction === 'right' ? 600 : -600;
+    animate(x, targetX, { type: 'spring', stiffness: 300, damping: 30 }).then(() => {
+      onSwipe(direction);
+    });
+  };
+
   const handleDragEnd = (_: any, info: PanInfo) => {
     if (info.offset.x > 150 || info.velocity.x > 500) {
-      onSwipe('right');
+      handleActionSwipe('right');
     } else if (info.offset.x < -150 || info.velocity.x < -500) {
-      onSwipe('left');
+      handleActionSwipe('left');
     } else {
-      x.set(0);
+      animate(x, 0, { type: 'spring', stiffness: 300, damping: 30 });
     }
   };
 
@@ -62,6 +69,9 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ student, onSwipe, onUnd
     <div className="relative w-full max-w-[340px] aspect-[4/5] perspective-1000">
       <motion.div
         style={{ x: springX, rotate, opacity }}
+        initial={{ scale: 0.95, y: 12, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
         drag="x"
         dragConstraints={{ left: 0, right: 0 }}
         dragElastic={0.8}
@@ -131,7 +141,7 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ student, onSwipe, onUnd
       {/* Action Buttons */}
       <div className="absolute -bottom-24 left-0 right-0 flex justify-center items-center gap-5">
         <button
-          onClick={() => onSwipe('left')}
+          onClick={() => handleActionSwipe('left')}
           className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center text-[#d32f2f] hover:scale-110 active:scale-95 transition-all border border-slate-100"
         >
           <X size={32} />
@@ -148,7 +158,7 @@ const AttendanceCard: React.FC<AttendanceCardProps> = ({ student, onSwipe, onUnd
         )}
 
         <button
-          onClick={() => onSwipe('right')}
+          onClick={() => handleActionSwipe('right')}
           className="w-16 h-16 rounded-full bg-white shadow-xl flex items-center justify-center text-[#00897b] hover:scale-110 active:scale-95 transition-all border border-slate-100"
         >
           <Check size={32} />

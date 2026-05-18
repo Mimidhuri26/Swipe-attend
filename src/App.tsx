@@ -222,6 +222,7 @@ function App() {
                   {/* Main Swipable Card */}
                   <div className="absolute inset-0 z-20">
                     <AttendanceCard 
+                      key={currentStudent.id}
                       student={currentStudent}
                       onSwipe={(dir) => handleMarkAttendance(currentStudent.id, dir === 'right' ? 'present' : 'absent')}
                       onUndo={handleUndo}
