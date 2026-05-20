@@ -175,18 +175,41 @@ const saveWorkbook = async (workbook: XLSX.WorkBook, fileName: string, batchName
       // Generate the Excel binary data as a base64 string
       const wbout = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
 
-      // Save the file to the device's temporary directory
-      const savedFile = await Filesystem.writeFile({
-        path: fileName,
-        data: wbout,
-        directory: Directory.Cache
-      });
+      let finalUri = '';
+      try {
+        // Try to create the custom directory in the user's Download folder
+        try {
+          await Filesystem.mkdir({
+            path: 'Download/SwipeAttend',
+            directory: Directory.ExternalStorage,
+            recursive: true
+          });
+        } catch (e) {
+          // Directory already exists, proceed
+        }
 
-      // Use the Share API to open the Android "Save/Share" menu
+        const savedFile = await Filesystem.writeFile({
+          path: `Download/SwipeAttend/${fileName}`,
+          data: wbout,
+          directory: Directory.ExternalStorage
+        });
+        finalUri = savedFile.uri;
+      } catch (externalErr) {
+        console.warn('Could not save to ExternalStorage Downloads, falling back to Cache', externalErr);
+        // Save the file to the device's temporary directory as fallback
+        const savedFile = await Filesystem.writeFile({
+          path: fileName,
+          data: wbout,
+          directory: Directory.Cache
+        });
+        finalUri = savedFile.uri;
+      }
+
+      // Use the Share API to open the Android "Save/Share" menu or notify the user
       await Share.share({
         title,
         text: `${title} for ${batchName} as of ${dateStr}`,
-        url: savedFile.uri,
+        url: finalUri,
         dialogTitle: `Save ${title}`
       });
     } catch (error) {
