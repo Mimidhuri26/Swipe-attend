@@ -43,6 +43,7 @@ export const useAttendance = () => {
           return {
             ...existing,
             name: parsedS.name as string,
+            examRollNo: parsedS.examRollNo || existing.examRollNo,
             presentCount: parsedData.type === 'standard' ? (parsedS.presentCount ?? existing.presentCount) : existing.presentCount,
             totalDays: parsedData.type === 'standard' ? (parsedS.totalDays ?? existing.totalDays) : existing.totalDays,
           };

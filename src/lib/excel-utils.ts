@@ -37,7 +37,12 @@ export const parseExcel = async (file: File): Promise<ParseResult> => {
 
           const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
           const nameCol = headers.findIndex(h => normalize(String(h)).includes('name'));
-          const rollCol = headers.findIndex(h => normalize(String(h)).includes('rollno'));
+          const exactRollCol = headers.findIndex(h => {
+            const norm = normalize(String(h));
+            return norm === 'rollno' || norm === 'rollnumber' || norm === 'roll';
+          });
+          const examRollCol = headers.findIndex(h => normalize(String(h)).includes('examroll'));
+          const rollCol = exactRollCol !== -1 ? exactRollCol : headers.findIndex(h => normalize(String(h)).includes('rollno'));
           
           const students: Partial<Student>[] = [];
           const dailyRecords: { rollNo: string, day: number, status: 'present' | 'absent' }[] = [];
@@ -48,13 +53,15 @@ export const parseExcel = async (file: File): Promise<ParseResult> => {
             
             const name = nameCol !== -1 ? String(row[nameCol] || '') : '';
             const rollNo = rollCol !== -1 ? String(row[rollCol] || '') : '';
+            const examRollNo = examRollCol !== -1 ? String(row[examRollCol] || '') : undefined;
             
-            if (!name && !rollNo) continue; // Skip totally empty rows
+            if (!name && !rollNo && !examRollNo) continue; // Skip totally empty rows
             
-            const rollToUse = rollNo || `temp-${i}`;
+            const rollToUse = rollNo || examRollNo || `temp-${i}`;
             students.push({
               id: crypto.randomUUID(),
               rollNo: rollToUse,
+              examRollNo: examRollNo || undefined,
               name: name || 'Unknown Student',
               presentCount: 0,
               totalDays: 0,
@@ -78,6 +85,7 @@ export const parseExcel = async (file: File): Promise<ParseResult> => {
           const normalize = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');
           const nameKeys = ['name', 'studentname', 'fullname', 'student', 'students'];
           const rollKeys = ['rollno', 'rollnumber', 'enrollment', 'id', 'serialno', 'roll'];
+          const examRollKeys = ['examroll', 'examrollno', 'examrollnumber'];
           const photoKeys = ['photo', 'avatar', 'image', 'profile'];
           const totalKeys = ['totalsessions', 'totaldays', 'total'];
           const presentKeys = ['presentcount', 'presentsessions', 'present'];
@@ -96,7 +104,9 @@ export const parseExcel = async (file: File): Promise<ParseResult> => {
 
               const name = findValue(nameKeys) || 'Unknown Student';
               const rawRollNo = findValue(rollKeys);
+              const rawExamRollNo = findValue(examRollKeys);
               const rollNo = String(rawRollNo !== undefined && rawRollNo !== null && rawRollNo !== '' ? rawRollNo : index + 1);
+              const examRollNo = rawExamRollNo ? String(rawExamRollNo) : undefined;
               const photo = findValue(photoKeys);
               const rawTotal = findValue(totalKeys);
               const rawPresent = findValue(presentKeys);
@@ -104,6 +114,7 @@ export const parseExcel = async (file: File): Promise<ParseResult> => {
               return {
                 id: crypto.randomUUID(),
                 rollNo,
+                examRollNo,
                 name: String(name),
                 photo: photo ? String(photo) : undefined,
                 presentCount: rawPresent !== undefined ? parseInt(String(rawPresent), 10) || 0 : 0,
@@ -133,7 +144,8 @@ export const exportBatchToExcel = async (batch: Batch) => {
   const data = batch.students.map((student, index) => {
     return {
       'S.No.': index + 1,
-      'Exams. Roll No.': student.rollNo,
+      'Roll no.': student.rollNo,
+      'Exams. Roll No.': student.examRollNo || student.rollNo,
       'NAME': student.name,
       'Lecture taken': student.totalDays,
       'Lecture Attended': student.presentCount
@@ -156,6 +168,7 @@ export const exportBatchToExcel = async (batch: Batch) => {
 
   const wscols = [
     { wch: 8 },  // S.No.
+    { wch: 15 }, // Roll no.
     { wch: 20 }, // Exams. Roll No.
     { wch: 35 }, // NAME
     { wch: 15 }, // Lecture taken
@@ -256,7 +269,7 @@ export const exportAttendanceSheetToExcel = async (batch: Batch) => {
       const row: any = {
         'Sl.No.': index + 1,
         'Roll no.': student.rollNo,
-        'Exam Roll No.': student.rollNo,
+        'Exam Roll No.': student.examRollNo || student.rollNo,
         'Student Name': student.name,
       };
 

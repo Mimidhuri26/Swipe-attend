@@ -1,6 +1,7 @@
 export interface Student {
   id: string;
   rollNo: string;
+  examRollNo?: string;
   name: string;
   photo?: string;
   presentCount: number;

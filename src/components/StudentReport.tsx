@@ -196,16 +196,12 @@ const StudentReport: React.FC<StudentReportProps> = ({ batch, onBack, onUpdateAt
                             
                             {reportMode === 'daily' ? (
                               <div className="flex items-center gap-4 text-[#757575] text-sm">
-                                <span className={`${isPresent ? 'text-[#00897b]' : isAbsent ? 'text-[#d32f2f]' : 'text-slate-400'} font-medium`}>
-                                  {isPresent ? 'Checked In' : isAbsent ? 'Absent' : 'Pending'}
+                                <span className="text-slate-400 font-medium">
+                                  ID: {student.rollNo} {student.examRollNo ? `| ${student.examRollNo}` : ''}
                                 </span>
                               </div>
                             ) : (
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                                  <span>Tally: {student.presentCount} / {student.totalDays}</span>
-                                  <span>{percentage}%</span>
-                                </div>
+                              <div className="space-y-2 mt-2">
                                 <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
                                   <motion.div 
                                     initial={{ width: 0 }}
